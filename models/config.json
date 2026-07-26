@@ -1,0 +1,9 @@
+{
+  "VOCAB_SIZE": 10000,
+  "MAX_LEN": 200,
+  "EMBEDDING_DIM": 128,
+  "architecture": "Embedding -> Bidirectional LSTM(64) -> Dropout -> Dense(32) -> Dense(1)",
+  "test_accuracy": 0.8389599919319153,
+  "test_loss": 0.37876126170158386,
+  "test_roc_auc": 0.9216417792
+}
