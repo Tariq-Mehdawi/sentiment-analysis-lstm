@@ -4,8 +4,8 @@ model.py
 Bidirectional LSTM architecture for binary sentiment classification.
 """
 
+from tensorflow.keras.layers import LSTM, Bidirectional, Dense, Dropout, Embedding
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, Bidirectional, LSTM, Dense, Dropout
 
 VOCAB_SIZE = 10000
 MAX_LEN = 200

@@ -7,19 +7,18 @@ Usage:
     python src/evaluate.py
 """
 
-import os
 import json
+import os
 import pickle
-import numpy as np
-import pandas as pd
+
 import matplotlib
+import pandas as pd
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from tensorflow.keras.models import load_model
-from sklearn.metrics import (
-    confusion_matrix, classification_report, roc_auc_score
-)
 
 from src.preprocess import clean_text, encode, load_tokenizer
 
@@ -30,7 +29,7 @@ PLOT_DIR = 'outputs/plots'
 
 def plot_training_curves(history, out_path):
     epochs = range(1, len(history['accuracy']) + 1)
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    _fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
     axes[0].plot(epochs, [a * 100 for a in history['accuracy']],
                  'o-', label='Train')

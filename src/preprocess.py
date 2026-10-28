@@ -4,12 +4,12 @@ preprocess.py
 Text cleaning, tokenization, and padding for the IMDB sentiment dataset.
 """
 
-import re
 import pickle
+import re
+
 import numpy as np
-from sklearn.model_selection import train_test_split
-from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.text import Tokenizer
 
 VOCAB_SIZE = 10000
 MAX_LEN = 200
@@ -47,6 +47,9 @@ def prepare_data(train_df, test_df, val_size=0.1, random_state=42):
 
     Returns (X_train, y_train, X_val, y_val, X_test, y_test, tokenizer).
     """
+    # Imported here (not at the top) so the API image doesn't need scikit-learn
+    from sklearn.model_selection import train_test_split
+
     train_df = train_df.copy()
     test_df = test_df.copy()
     train_df['clean_review'] = train_df['review'].apply(clean_text)

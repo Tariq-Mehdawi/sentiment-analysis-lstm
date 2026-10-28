@@ -7,8 +7,9 @@ Usage:
     python src/predict.py "This movie completely blew me away."
 """
 
-import sys
 import json
+import sys
+
 from tensorflow.keras.models import load_model
 
 from src.preprocess import clean_text, encode, load_tokenizer
