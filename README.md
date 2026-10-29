@@ -1,8 +1,51 @@
 # Sentiment Analysis with Bidirectional LSTM
 
+[![CI](https://github.com/Tariq-Mehdawi/sentiment-analysis-lstm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Tariq-Mehdawi/sentiment-analysis-lstm/actions/workflows/ci.yml)
+
 A deep learning sentiment classifier built from scratch in TensorFlow/Keras, trained on the Stanford IMDB Movie Reviews dataset. The model learns its own word representations via a trainable embedding layer and reads reviews sequentially with a bidirectional LSTM, allowing it to capture context and negation that bag-of-words approaches miss.
 
 **Test accuracy: 83.90% | ROC-AUC: 92.16%** on 25,000 held-out reviews.
+
+The model is served as a tested, containerised **FastAPI** service, built, scanned and published automatically by **GitHub Actions**.
+
+---
+
+## 🚀 Run the service (one command)
+
+```bash
+docker run -p 8000:8000 ghcr.io/tariq-mehdawi/sentiment-analysis-lstm:latest
+```
+
+Then open **http://localhost:8000/docs** for the interactive API, or:
+
+```bash
+curl http://localhost:8000/health
+
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"text": "This movie completely blew me away, brilliant acting."}'
+```
+
+**Pinned image (reproducible):**
+`ghcr.io/tariq-mehdawi/sentiment-analysis-lstm@sha256:f2c5d788425a5c964b6be871a0f783a1ac42b8b12022c0aac385081410c72702`
+
+## 🛠️ MLOps pipeline
+
+| Part | What it does |
+|---|---|
+| `src/app/main.py` | FastAPI service: `GET /health`, `POST /predict` with pydantic input validation |
+| `src/train/train.py` | Training script (`python -m src.train.train`) |
+| `tests/` | 11 pytest tests: API contract, model loading, input schema, edge cases, determinism |
+| `Dockerfile` | Multi-stage, non-root, pinned base image (by digest), `HEALTHCHECK` |
+| `.github/workflows/ci.yml` | Lint + test on every PR; on `main`: build → Trivy scan → push to GHCR tagged with the commit SHA. All actions pinned to full commit SHAs |
+| Branch protection | `main` requires a PR and a passing **Lint & Test** check |
+
+### Run tests locally
+```bash
+uv venv --python 3.12 .venv && source .venv/bin/activate
+uv pip install -r requirements-dev.txt
+ruff check src tests && pytest -v
+```
 
 ---
 
@@ -51,12 +94,16 @@ Class balance is exactly 50/50 in every split, so accuracy is a meaningful headl
 
 | Component | Technology |
 |---|---|
-| Language | Python 3.10+ |
-| Deep Learning | TensorFlow 2.20 / Keras 3 |
+| Language | Python 3.12 |
+| Deep Learning | TensorFlow 2.21 / Keras 3.15 |
 | Data Handling | pandas, NumPy |
 | Evaluation | scikit-learn |
 | Visualization | matplotlib, seaborn |
-| Environment | Google Colab (T4 GPU) |
+| Serving | FastAPI, Uvicorn, pydantic |
+| Testing & Lint | pytest, ruff |
+| Containerisation | Docker (multi-stage, non-root) |
+| CI/CD | GitHub Actions, Trivy, GitHub Container Registry |
+| Training Environment | Google Colab (T4 GPU) |
 
 ---
 
@@ -64,6 +111,8 @@ Class balance is exactly 50/50 in every split, so accuracy is a meaningful headl
 
 ```
 sentiment-analysis-lstm/
+├── .github/workflows/
+│   └── ci.yml                   # lint, test, build, scan, push
 ├── data/
 │   ├── raw/                     # downloaded dataset (gitignored)
 │   └── processed/               # cached CSVs (gitignored)
@@ -78,15 +127,24 @@ sentiment-analysis-lstm/
 │       ├── training_curves.png
 │       └── confusion_matrix.png
 ├── src/
-│   ├── __init__.py
+│   ├── app/
+│   │   └── main.py              # FastAPI service
+│   ├── train/
+│   │   └── train.py             # training loop + callbacks
 │   ├── data_loader.py           # download + parse the dataset
 │   ├── preprocess.py            # cleaning, tokenization, padding
 │   ├── model.py                 # architecture definition
-│   ├── train.py                 # training loop + callbacks
 │   ├── evaluate.py              # metrics + plots
 │   └── predict.py               # inference on new text
-├── requirements.txt
-├── .gitignore
+├── tests/
+│   ├── conftest.py
+│   └── test_api.py
+├── Dockerfile
+├── .dockerignore
+├── requirements.txt             # serving dependencies (pinned)
+├── requirements-train.txt       # + training/evaluation extras
+├── requirements-dev.txt         # + pytest, ruff
+├── pytest.ini
 ├── LICENSE
 └── README.md
 ```
@@ -222,33 +280,35 @@ Three observations worth highlighting:
 ## Installation
 
 ```bash
-git clone https://github.com/<Tariq-Mehdawi>/sentiment-analysis-lstm.git
+git clone https://github.com/Tariq-Mehdawi/sentiment-analysis-lstm.git
 cd sentiment-analysis-lstm
-pip install -r requirements.txt
+pip install -r requirements-train.txt
 ```
 
 ---
 
 ## Usage
 
+Run all commands from the project root.
+
 **Download and prepare the data**
 ```bash
-python src/data_loader.py
+python -m src.data_loader
 ```
 
 **Train the model**
 ```bash
-python src/train.py
+python -m src.train.train
 ```
 
 **Evaluate on the test set**
 ```bash
-python src/evaluate.py
+python -m src.evaluate
 ```
 
-**Predict on  own text**
+**Predict on your own text**
 ```bash
-python src/predict.py "This movie completely blew me away."
+python -m src.predict "This movie completely blew me away."
 ```
 
 Or from Python:
@@ -275,6 +335,8 @@ print(f"{result['label']} ({result['confidence']*100:.2f}%)")
 
 **All callbacks monitor `val_loss`.** An earlier version monitored `val_accuracy` for checkpointing and `val_loss` for early stopping, causing the saved model on disk to differ from the model restored in memory.
 
+**Pinned serving dependencies.** The model and pickled tokenizer only load reliably with a matching Keras version, so `requirements.txt` pins exact versions. When Trivy flagged HIGH CVEs in Keras 3.13.2, the version was bumped to 3.15.0 and the test suite confirmed the saved artifacts still load and predict correctly.
+
 ---
 
 ## Limitations & Future Work
@@ -296,7 +358,6 @@ print(f"{result['label']} ({result['confidence']*100:.2f}%)")
 | Threshold tuning | ROC-AUC of 92.16% suggests headroom above the 0.5 default |
 | Fine-tuned DistilBERT | Transformer baselines typically reach 92–94% on IMDB |
 | Stacked / deeper LSTM layers | Higher-level sequence abstraction |
-| FastAPI + Docker deployment | Serve the model as a REST endpoint |
 
 ---
 
