@@ -4,21 +4,20 @@ train.py
 Trains the sentiment model and saves the model, tokenizer, and config.
 
 Usage:
-    python src/train.py
+    python -m src.train.train
 """
 
-import os
 import json
+import os
 import pickle
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from tensorflow.keras.callbacks import (
-    EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-)
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 
-from src.preprocess import prepare_data, save_tokenizer, VOCAB_SIZE, MAX_LEN
-from src.model import build_model, EMBEDDING_DIM
+from src.model import EMBEDDING_DIM, build_model
+from src.preprocess import MAX_LEN, VOCAB_SIZE, prepare_data, save_tokenizer
 
 RAW_DIR = 'data/raw'
 MODEL_DIR = 'models'
@@ -46,7 +45,7 @@ def main():
     train_df = pd.read_csv(f'{RAW_DIR}/train.csv')
     test_df = pd.read_csv(f'{RAW_DIR}/test.csv')
 
-    X_train, y_train, X_val, y_val, X_test, y_test, tokenizer = prepare_data(
+    X_train, y_train, X_val, y_val, X_test, _y_test, tokenizer = prepare_data(
         train_df, test_df
     )
     print(f"Train: {X_train.shape} | Val: {X_val.shape} | Test: {X_test.shape}")
